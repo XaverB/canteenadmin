@@ -11,7 +11,7 @@ class Canteen(
     val dish: String,
     val dishPrice: Float,
     val waitingTime: Int
-)
+) : java.io.Serializable
 
 class EditCanteen(
     val name: String,

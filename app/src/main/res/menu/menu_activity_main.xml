@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item android:id="@+id/mniEdit"
+        android:title="@string/Edit"
+        android:visible="false"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_baseline_edit_24"
+        />
+    <item android:id="@+id/mniCancle"
+        android:title="@string/Cancle"
+        android:visible="false"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_baseline_cancel_24"
+        />
+
+    <item android:id="@+id/mniSave"
+        android:title="@string/Save"
+        android:visible="false"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_baseline_save_24"
+        />
+</menu>

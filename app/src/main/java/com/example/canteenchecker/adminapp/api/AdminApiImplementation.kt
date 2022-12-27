@@ -143,31 +143,14 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
         val waitingTime: Int
     )
 
-    private class ApiEditCanteen(
-        val name: String,
-        val address: String,
-        val website: String,
-        val phoneNumber: String
-    )
-
-    private class ApiEditDish(
-        val dish: String,
-        val dishPrice: Float
-    )
-
     private class ApiReviewStatistics(
         val ratingsOne: Int,
         val ratingsTwo: Int,
         val ratingsThree: Int,
         val ratingsFour: Int,
         val ratingsFive: Int,
-    ) {
-        val totalRatings = ratingsOne + ratingsTwo + ratingsThree + ratingsFour + ratingsFive
-        val averageRating =
-            if (totalRatings == 0) 0F
-            else (ratingsOne * 1 + ratingsTwo * 2 + ratingsThree * 3 + ratingsFour * 4 + ratingsFive * 5) / totalRatings.toFloat()
-    }
-
+    )
+    
     private class ApiReview(
         val id: String,
         val creationDate: Date,
