@@ -18,7 +18,7 @@ class EditCanteen(
     val address: String,
     val website: String,
     val phoneNumber: String
-)
+) : java.io.Serializable
 
 class EditDish(
     val name: String,

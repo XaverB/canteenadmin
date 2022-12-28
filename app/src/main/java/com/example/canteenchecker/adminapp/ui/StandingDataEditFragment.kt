@@ -1,22 +1,26 @@
 package com.example.canteenchecker.adminapp.ui
 
+import android.content.Intent
 import android.location.Geocoder
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.ui.text.intl.Locale
+import androidx.lifecycle.lifecycleScope
+import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
+import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
+import com.example.canteenchecker.adminapp.core.EditCanteen
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.launch
 
 /**
  * A simple [Fragment] subclass.
@@ -64,11 +68,25 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
         }
     }
 
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        arguments?.let {
+            it.getSerializable("canteen", Canteen::class.java)?.let {
+                canteen ->  updateCanteen(canteen)
+            }
+        }
+    }
+
     override fun onPrepareOptionsMenu(menu: Menu){
         super.onPrepareOptionsMenu(menu)
         menu.findItem(R.id.mniEdit).isVisible = false
         menu.findItem(R.id.mniCancle).isVisible = true
         menu.findItem(R.id.mniSave).isVisible = true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.mniSave -> save().let { true }
+        else -> super.onOptionsItemSelected(item)
     }
 
     private fun updateCanteen(canteen: Canteen) {
@@ -103,6 +121,34 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
                     )
                 }
             }
+        }
+    }
+
+    private fun save() = lifecycleScope.launch {
+
+        val updatedCanteen = EditCanteen(
+        edtName.text.toString(),
+        edtAddress.text.toString(),
+        edtWebsite.text.toString(),
+        edtPhone.text.toString())
+
+        // TODO
+        val authenticationToken = (activity?.application as App).authenticationToken
+
+        AdminApiFactory.createAdminAPi().updateCanteen(
+            authenticationToken,
+            updatedCanteen).
+        onFailure {
+            Toast.makeText(requireContext(), "Nix gut update", Toast.LENGTH_LONG).show()
+        }.
+        onSuccess {
+            // TODO
+            Intent().also { intent ->
+                intent.action = "com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"
+                intent.putExtra("canteen", updatedCanteen)
+                activity?.sendBroadcast(intent)
+            }
+            activity?.supportFragmentManager?.popBackStack()
         }
     }
 

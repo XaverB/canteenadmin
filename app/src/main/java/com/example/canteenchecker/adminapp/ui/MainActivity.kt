@@ -1,38 +1,53 @@
 package com.example.canteenchecker.adminapp.ui
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.location.Geocoder
+import android.content.IntentFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.PersistableBundle
-import android.telephony.PhoneNumberUtils
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
-import android.widget.TextView
 import android.widget.Toast
-import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.lifecycleScope
-import com.airbnb.lottie.LottieAnimationView
 import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
 import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.example.canteenchecker.adminapp.core.EditCanteen
 import kotlinx.coroutines.launch
-import org.w3c.dom.Text
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var canteen: Canteen
+    val updateCanteenBroadcastReciever: BroadcastReceiver = UpdateCanteenBroadcastReceiver()
+
+    inner class UpdateCanteenBroadcastReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val updatedCanteen = intent?.getSerializableExtra("canteen", EditCanteen::class.java)
+
+            updatedCanteen
+                ?.let {
+                    // update canteen with new values and trigger fragment refresh
+                    canteen = Canteen(canteen.id,
+                    it.name,
+                    it.address,
+                    it.phoneNumber,
+                    it.website,
+                    canteen.dish,
+                    canteen.dishPrice,
+                    canteen.waitingTime)
+                    showStandingDataFragment()
+                }
+                ?: updateCanteen() // fetch from service since something is messed up
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        registerReceiver(updateCanteenBroadcastReciever, IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"))
         updateCanteen()
     }
 
@@ -43,13 +58,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.mniEdit -> showEditFragment().let { true }
-        R.id.mniCancle -> showStandingDataFragment().let { true }
+        R.id.mniCancle -> cancelEdit().let { true }
         else -> super.onOptionsItemSelected(item)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putSerializable("canteen", canteen)
         super.onSaveInstanceState(outState)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(updateCanteenBroadcastReciever)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -64,6 +84,10 @@ class MainActivity : AppCompatActivity() {
             .commit()
     }
 
+    private fun cancelEdit() {
+        supportFragmentManager.popBackStack()
+    }
+
     private fun showStandingDataFragment() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fcwMain, StandingDataFragment.newInstance(canteen))
@@ -76,12 +100,10 @@ class MainActivity : AppCompatActivity() {
         AdminApiFactory.createAdminAPi().getCanteen(token)
             .onSuccess {
                 canteen = it
-
-                supportFragmentManager.beginTransaction()
-                    .add(R.id.fcwMain, StandingDataFragment.newInstance(it))
-                    .commit()
+                showStandingDataFragment()
             }
             .onFailure {
+                // TODO show error fragment
                 Toast.makeText(
                     this@MainActivity,
                     R.string.error_load_canteen,
@@ -89,6 +111,4 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
     }
-
-
 }

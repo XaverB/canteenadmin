@@ -63,6 +63,16 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
             canteen?.let { updateCanteen(it) }
         }
     }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        arguments?.let {
+            it.getSerializable("canteen", Canteen::class.java)?.let {
+                    canteen ->  updateCanteen(canteen)
+            }
+        }
+    }
+
     override fun onPrepareOptionsMenu(menu: Menu){
         super.onPrepareOptionsMenu(menu)
          menu.findItem(R.id.mniEdit).isVisible = true
