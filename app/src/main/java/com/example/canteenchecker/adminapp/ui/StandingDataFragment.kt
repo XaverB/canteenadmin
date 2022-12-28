@@ -1,21 +1,29 @@
 package com.example.canteenchecker.adminapp.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.location.Geocoder
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.View
-import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.intl.Locale
+import androidx.lifecycle.lifecycleScope
+import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
+import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
+import com.example.canteenchecker.adminapp.core.EditCanteen
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.launch
 
 /**
  * A simple [Fragment] subclass.
@@ -23,6 +31,9 @@ import com.google.android.gms.maps.model.MarkerOptions
  * create an instance of this fragment.
  */
 class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
+    private val updateCanteenBroadcastReceiver: BroadcastReceiver = UpdateCanteenBroadcastReceiver()
+    private val updateWaitingTimeBroadcastReceiver: BroadcastReceiver =
+        UpdateWaitingTimeBroadcastReciever()
 
     private var canteen: Canteen? = null
 
@@ -37,8 +48,23 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
         arguments?.let {
-            canteen = it.getSerializable("canteen", Canteen::class.java)
+            it.getSerializable("canteen", Canteen::class.java)?.let { c -> canteen = c }
         }
+        updateCanteen()
+        requireContext().registerReceiver(
+            updateCanteenBroadcastReceiver,
+            IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess")
+        )
+        requireContext().registerReceiver(
+            updateWaitingTimeBroadcastReceiver,
+            IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateWaitingTime")
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requireContext().unregisterReceiver(updateCanteenBroadcastReceiver)
+        requireContext().unregisterReceiver(updateWaitingTimeBroadcastReceiver)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -67,19 +93,60 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
         super.onViewStateRestored(savedInstanceState)
         arguments?.let {
-            it.getSerializable("canteen", Canteen::class.java)?.let {
-                    canteen ->  updateCanteen(canteen)
+            it.getSerializable("canteen", Canteen::class.java)?.let { canteen ->
+                updateCanteen(canteen)
             }
         }
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu){
-        super.onPrepareOptionsMenu(menu)
-         menu.findItem(R.id.mniEdit).isVisible = true
-        menu.findItem(R.id.mniCancle).isVisible = false
-        menu.findItem(R.id.mniSave).isVisible = false
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_activity_main, menu)
+        return super.onCreateOptionsMenu(menu, inflater)
     }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.mniEdit -> showEditFragment().let { true }
+        else -> super.onOptionsItemSelected(item)
+    }
+
+
+    private fun showEditFragment() {
+
+        canteen?.let {
+            (activity as AppCompatActivity).supportFragmentManager.beginTransaction()
+                .add(R.id.fcwEdit, StandingDataEditFragment.newInstance(it))
+                .addToBackStack(null)
+                .commit()
+        }
+    }
+
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        super.onPrepareOptionsMenu(menu)
+        menu.findItem(R.id.mniEdit).isVisible = true
+    }
+
+    private fun updateCanteen() = lifecycleScope.launch {
+        val token = (requireActivity().application as App).authenticationToken
+
+        AdminApiFactory.createAdminAPi().getCanteen(token)
+            .onSuccess {
+                canteen = it
+                updateCanteen(it)
+
+                WaitingTimeFragment.waitingTimeUpdatedIntent(it.waitingTime)?.let {
+                    intent -> activity?.sendBroadcast(intent)
+                }
+            }
+            .onFailure {
+                // TODO show error fragment
+                Toast.makeText(
+                    requireContext(),
+                    R.string.error_load_canteen,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+    }
 
     private fun updateCanteen(canteen: Canteen) {
         tvPhone.text = PhoneNumberUtils.formatNumber(canteen.phoneNumber, Locale.current.region);
@@ -116,15 +183,65 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
         }
     }
 
+
+    inner class UpdateWaitingTimeBroadcastReciever : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.getIntExtra("waitingTime", 0)?.let { waitingTime ->
+                canteen?.let {
+                    canteen = it.copy(waitingTime = waitingTime)
+                    updateCanteen(canteen!!)
+                }
+            }
+        }
+    }
+
+    // triggered from edit fragment so we do not have to fetch again
+    inner class UpdateCanteenBroadcastReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val updatedCanteen =
+                intent?.getSerializableExtra("canteen", EditCanteen::class.java)
+
+            updatedCanteen
+                ?.let {
+                    canteen?.let { c ->
+                        // update canteen with new values and trigger fragment refresh
+                        canteen = Canteen(
+                            c.id,
+                            it.name,
+                            it.address,
+                            it.phoneNumber,
+                            it.website,
+                            c.dish,
+                            c.dishPrice,
+                            c.waitingTime
+                        )
+                        updateCanteen(canteen!!)
+                    }
+
+                }
+                ?: updateCanteen() // fetch from service since something is messed up
+        }
+    }
+
     companion object {
         private const val DEFAULT_ZOOM_FACTOR = 13f
 
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @return A new instance of fragment StandingDataFragment.
-         */
+        @JvmStatic
+        fun waitingTimeIntent(waitingTime: Int) =
+            Intent().also { intent ->
+                intent.action =
+                    "com.example.canteenchecker.adminapp.ui.MainActivity.UpdateWaitingTime"
+                intent.putExtra("waitingTime", waitingTime)
+            }
+
+        @JvmStatic
+        fun editCanteenIntent(updatedCanteen: EditCanteen) =
+            Intent().also { intent ->
+                intent.action =
+                    "com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"
+                intent.putExtra("canteen", updatedCanteen)
+            }
+
         @JvmStatic
         fun newInstance(canteen: Canteen) =
             StandingDataFragment().apply {
@@ -132,5 +249,7 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
                     putSerializable("canteen", canteen)
                 }
             }
+
+        fun newInstance() = StandingDataFragment()
     }
 }

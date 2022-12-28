@@ -9,106 +9,61 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
+import com.example.canteenchecker.adminapp.ui.WaitingTimeFragment
 import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
 import com.example.canteenchecker.adminapp.core.EditCanteen
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var canteen: Canteen
-    val updateCanteenBroadcastReciever: BroadcastReceiver = UpdateCanteenBroadcastReceiver()
-
-    inner class UpdateCanteenBroadcastReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val updatedCanteen = intent?.getSerializableExtra("canteen", EditCanteen::class.java)
-
-            updatedCanteen
-                ?.let {
-                    // update canteen with new values and trigger fragment refresh
-                    canteen = Canteen(canteen.id,
-                    it.name,
-                    it.address,
-                    it.phoneNumber,
-                    it.website,
-                    canteen.dish,
-                    canteen.dishPrice,
-                    canteen.waitingTime)
-                    showStandingDataFragment()
-                }
-                ?: updateCanteen() // fetch from service since something is messed up
-        }
-    }
+    private lateinit var demoCollectionAdapter: SwipeViewFragmentAdapter
+    private lateinit var viewPager: ViewPager2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        registerReceiver(updateCanteenBroadcastReciever, IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"))
-        updateCanteen()
-    }
+        demoCollectionAdapter = SwipeViewFragmentAdapter(this)
+        viewPager = findViewById(R.id.viewPager2)
+        viewPager.adapter = demoCollectionAdapter
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_activity_main, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.mniEdit -> showEditFragment().let { true }
-        R.id.mniCancle -> cancelEdit().let { true }
-        else -> super.onOptionsItemSelected(item)
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putSerializable("canteen", canteen)
-        super.onSaveInstanceState(outState)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(updateCanteenBroadcastReciever)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        savedInstanceState.getSerializable("canteen", Canteen::class.java)?.let { canteen = it }
-        super.onRestoreInstanceState(savedInstanceState)
-    }
-
-    private fun showEditFragment() {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fcwMain, StandingDataEditFragment.newInstance(canteen))
-            .addToBackStack(null)
-            .commit()
-    }
-
-    private fun cancelEdit() {
-        supportFragmentManager.popBackStack()
-    }
-
-    private fun showStandingDataFragment() {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fcwMain, StandingDataFragment.newInstance(canteen))
-            .commit()
-    }
-
-    private fun updateCanteen() = lifecycleScope.launch {
-        val token = (application as App).authenticationToken
-
-        AdminApiFactory.createAdminAPi().getCanteen(token)
-            .onSuccess {
-                canteen = it
-                showStandingDataFragment()
+        val tabLayout = findViewById<TabLayout>(R.id.tab_layout)
+        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            when(position) {
+                0 -> tab.text = "Data"
+                1 -> tab.text = "Waiting time"
+                2 -> tab.text = "Reviews"
             }
-            .onFailure {
-                // TODO show error fragment
-                Toast.makeText(
-                    this@MainActivity,
-                    R.string.error_load_canteen,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        }.attach()
+
     }
+
+    inner class SwipeViewFragmentAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
+        override fun getItemCount(): Int = 3
+
+        override fun createFragment(position: Int): Fragment {
+            // Return a NEW fragment instance in createFragment(int)
+            val fragment = when(position) {
+                0 -> StandingDataFragment.newInstance()
+                1 -> WaitingTimeFragment.newInstance(0)
+                else -> StandingDataFragment.newInstance()
+            }
+//            fragment.arguments = Bundle().apply {
+//                // Our object is just an integer :-P
+//                putInt(ARG_OBJECT, position + 1)
+//            }
+            return fragment
+        }
+    }
+
 }

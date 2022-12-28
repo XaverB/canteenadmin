@@ -2,7 +2,7 @@ package com.example.canteenchecker.adminapp.core
 
 import java.util.Date
 
-class Canteen(
+data class Canteen(
     val id: String,
     val name: String,
     val address: String,

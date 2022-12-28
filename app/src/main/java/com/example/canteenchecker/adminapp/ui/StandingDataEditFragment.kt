@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.lifecycleScope
 import com.example.canteenchecker.adminapp.App
@@ -71,22 +72,32 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
         super.onViewStateRestored(savedInstanceState)
         arguments?.let {
-            it.getSerializable("canteen", Canteen::class.java)?.let {
-                canteen ->  updateCanteen(canteen)
+            it.getSerializable("canteen", Canteen::class.java)?.let { canteen ->
+                updateCanteen(canteen)
             }
         }
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu){
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_activity_main, menu)
+        return super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
-        menu.findItem(R.id.mniEdit).isVisible = false
-        menu.findItem(R.id.mniCancle).isVisible = true
-        menu.findItem(R.id.mniSave).isVisible = true
+        menu.findItem(R.id.mniCancle)?.isVisible = true
+        menu.findItem(R.id.mniSave)?.isVisible = true
+        menu.findItem(R.id.mniEdit)?.isVisible = false
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.mniSave -> save().let { true }
+        R.id.mniCancle -> cancelEdit().let { true }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun cancelEdit() {
+        (activity as AppCompatActivity).supportFragmentManager.popBackStack()
     }
 
     private fun updateCanteen(canteen: Canteen) {
@@ -127,26 +138,23 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
     private fun save() = lifecycleScope.launch {
 
         val updatedCanteen = EditCanteen(
-        edtName.text.toString(),
-        edtAddress.text.toString(),
-        edtWebsite.text.toString(),
-        edtPhone.text.toString())
+            edtName.text.toString(),
+            edtAddress.text.toString(),
+            edtWebsite.text.toString(),
+            edtPhone.text.toString()
+        )
 
         // TODO
         val authenticationToken = (activity?.application as App).authenticationToken
 
         AdminApiFactory.createAdminAPi().updateCanteen(
             authenticationToken,
-            updatedCanteen).
-        onFailure {
+            updatedCanteen
+        ).onFailure {
             Toast.makeText(requireContext(), "Nix gut update", Toast.LENGTH_LONG).show()
-        }.
-        onSuccess {
-            // TODO
-            Intent().also { intent ->
-                intent.action = "com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"
-                intent.putExtra("canteen", updatedCanteen)
-                activity?.sendBroadcast(intent)
+        }.onSuccess {
+            StandingDataFragment.editCanteenIntent(updatedCanteen).let {
+                activity?.sendBroadcast(it)
             }
             activity?.supportFragmentManager?.popBackStack()
         }
