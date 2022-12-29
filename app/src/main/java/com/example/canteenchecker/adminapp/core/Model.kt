@@ -26,16 +26,16 @@ class EditDish(
 )
 
 class ReviewStatistics(
-    val ratingsOne: Int,
-    val ratingsTwo: Int,
-    val ratingsThree: Int,
-    val ratingsFour: Int,
-    val ratingsFive: Int,
+    val countOneStar: Int,
+    val countTwoStars: Int,
+    val countThreeStars: Int,
+    val countFourStars: Int,
+    val countFiveStars: Int,
 ) {
-    val totalRatings = ratingsOne + ratingsTwo + ratingsThree + ratingsFour + ratingsFive
+    val totalRatings = countOneStar + countTwoStars + countThreeStars + countFourStars + countFiveStars
     val averageRating =
         if (totalRatings == 0) 0F
-        else (ratingsOne * 1 + ratingsTwo * 2 + ratingsThree * 3 + ratingsFour * 4 + ratingsFive * 5) / totalRatings.toFloat()
+        else (countOneStar * 1 + countTwoStars * 2 + countThreeStars * 3 + countFourStars * 4 + countFiveStars * 5) / totalRatings.toFloat()
 }
 
 class Review(

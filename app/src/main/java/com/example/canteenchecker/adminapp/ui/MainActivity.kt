@@ -20,6 +20,7 @@ import com.example.canteenchecker.adminapp.ui.WaitingTimeFragment
 import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
 import com.example.canteenchecker.adminapp.core.EditCanteen
+import com.example.canteenchecker.adminapp.core.Review
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
@@ -52,16 +53,12 @@ class MainActivity : AppCompatActivity() {
         override fun getItemCount(): Int = 3
 
         override fun createFragment(position: Int): Fragment {
-            // Return a NEW fragment instance in createFragment(int)
             val fragment = when(position) {
                 0 -> StandingDataFragment.newInstance()
                 1 -> WaitingTimeFragment.newInstance(0)
+                2 -> ReviewFragment.newInstance()
                 else -> StandingDataFragment.newInstance()
             }
-//            fragment.arguments = Bundle().apply {
-//                // Our object is just an integer :-P
-//                putInt(ARG_OBJECT, position + 1)
-//            }
             return fragment
         }
     }

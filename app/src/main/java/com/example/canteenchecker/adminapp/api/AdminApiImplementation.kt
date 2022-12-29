@@ -36,11 +36,11 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
             getReviewStatistics(authenticationToken)
         }.convert {
             ReviewStatistics(
-                ratingsOne,
-                ratingsTwo,
-                ratingsThree,
-                ratingsFour,
-                ratingsFive
+                countOneStar,
+                countTwoStars,
+                countThreeStars,
+                countFourStars,
+                countFiveStars
             )
         }
 
@@ -144,11 +144,11 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
     )
 
     private class ApiReviewStatistics(
-        val ratingsOne: Int,
-        val ratingsTwo: Int,
-        val ratingsThree: Int,
-        val ratingsFour: Int,
-        val ratingsFive: Int,
+        val countOneStar: Int,
+        val countTwoStars: Int,
+        val countThreeStars: Int,
+        val countFourStars: Int,
+        val countFiveStars: Int,
     )
     
     private class ApiReview(
