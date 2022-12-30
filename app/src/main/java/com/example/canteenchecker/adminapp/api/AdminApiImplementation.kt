@@ -2,6 +2,8 @@ package com.example.canteenchecker.adminapp.api
 
 import android.util.Log
 import com.example.canteenchecker.adminapp.core.*
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import retrofit2.HttpException
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -18,9 +20,11 @@ object AdminApiFactory {
 }
 
 private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
+    val gson: Gson = GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss").create()
     private val retrofit =
         Retrofit.Builder().baseUrl(apiBaseUrl).addConverterFactory(ScalarsConverterFactory.create())
-            .addConverterFactory(GsonConverterFactory.create()).build()
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
 
     override suspend fun authenticate(userName: String, password: String): Result<String> =
         apiCall {
@@ -129,7 +133,7 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
         suspend fun deleteCanteenReview(
             @Header("Authorization") authenticationToken: String,
             @Path("reviewId") reviewId: String
-        )
+        ) : Response<Unit>
     }
 
     private class ApiCanteen(

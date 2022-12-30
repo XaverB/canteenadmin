@@ -12,8 +12,6 @@ import com.google.android.gms.maps.SupportMapFragment
 
 class ReviewFragment : Fragment(R.layout.fragment_review) {
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
@@ -23,8 +21,15 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
 
         view.run {
             addStatisticsFragment()
+            addReviewListFragment()
         }
     }
+
+    private fun addReviewListFragment() =
+        (activity as AppCompatActivity).supportFragmentManager.beginTransaction()
+            .add(R.id.fcwReviewList, ReviewListFragment.newInstance())
+            .addToBackStack(null)
+            .commit()
 
     private fun addStatisticsFragment() =
         (activity as AppCompatActivity).supportFragmentManager.beginTransaction()
