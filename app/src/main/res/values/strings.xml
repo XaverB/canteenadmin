@@ -73,4 +73,7 @@
     <string name="text_two">2</string>
     <string name="text_one">1</string>
     <string name="message_loading_reviews_failed">Could not load reviews.</string>
+    <string name="Dish">Dish</string>
+    <string name="Price">Price</string>
+    <string name="update">Update</string>
 </resources>

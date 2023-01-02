@@ -46,14 +46,14 @@ class ReviewListFragment : Fragment(R.layout.fragment_review_list) {
             var rcView = findViewById<RecyclerView>(R.id.rvReviews)
             rcView.adapter = reviewAdapter
 
+            // credits to https://www.geeksforgeeks.org/android-swipe-to-delete-and-undo-in-recyclerview-with-kotlin/
+            // 02.01.2023
             ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
                 override fun onMove(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
                 ): Boolean {
-                    // this method is called
-                    // when the item is moved.
                     return false
                 }
 

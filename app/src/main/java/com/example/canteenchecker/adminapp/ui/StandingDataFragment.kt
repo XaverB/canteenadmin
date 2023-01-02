@@ -111,7 +111,6 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
 
 
     private fun showEditFragment() {
-
         canteen?.let {
             (activity as AppCompatActivity).supportFragmentManager.beginTransaction()
                 .add(R.id.fcwEdit, StandingDataEditFragment.newInstance(it))
@@ -119,7 +118,6 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
                 .commit()
         }
     }
-
 
     override fun onPrepareOptionsMenu(menu: Menu) {
         super.onPrepareOptionsMenu(menu)
@@ -134,12 +132,15 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
                 canteen = it
                 updateCanteen(it)
 
-                WaitingTimeFragment.waitingTimeUpdatedIntent(it.waitingTime)?.let {
-                    intent -> activity?.sendBroadcast(intent)
+                WaitingTimeFragment.waitingTimeUpdatedIntent(it.waitingTime)?.let { intent ->
+                    activity?.sendBroadcast(intent)
+                }
+
+                DishFragment.dishUpdatedIntent(it.dish, it.dishPrice)?.let { intent ->
+                    activity?.sendBroadcast(intent)
                 }
             }
             .onFailure {
-                // TODO show error fragment
                 Toast.makeText(
                     requireContext(),
                     R.string.error_load_canteen,

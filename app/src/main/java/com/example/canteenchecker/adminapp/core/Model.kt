@@ -9,7 +9,7 @@ data class Canteen(
     val phoneNumber: String,
     val website: String,
     val dish: String,
-    val dishPrice: Float,
+    val dishPrice: Double,
     val waitingTime: Int
 ) : java.io.Serializable
 
@@ -22,8 +22,8 @@ class EditCanteen(
 
 class EditDish(
     val name: String,
-    val price: Float
-)
+    val price: Double
+) : java.io.Serializable
 
 class ReviewStatistics(
     val countOneStar: Int,

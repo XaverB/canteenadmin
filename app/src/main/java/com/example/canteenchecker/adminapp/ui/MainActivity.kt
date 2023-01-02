@@ -44,19 +44,21 @@ class MainActivity : AppCompatActivity() {
                 0 -> tab.text = "Data"
                 1 -> tab.text = "Waiting time"
                 2 -> tab.text = "Reviews"
+                3 -> tab.text = "Dish"
             }
         }.attach()
 
     }
 
     inner class SwipeViewFragmentAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
-        override fun getItemCount(): Int = 3
+        override fun getItemCount(): Int = 4
 
         override fun createFragment(position: Int): Fragment {
             val fragment = when(position) {
                 0 -> StandingDataFragment.newInstance()
                 1 -> WaitingTimeFragment.newInstance(0)
                 2 -> ReviewFragment.newInstance()
+                3 -> DishFragment.newInstance()
                 else -> StandingDataFragment.newInstance()
             }
             return fragment

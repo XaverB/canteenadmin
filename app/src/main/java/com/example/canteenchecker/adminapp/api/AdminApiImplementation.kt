@@ -115,7 +115,7 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
         suspend fun putCanteenDish(
             @Header("Authorization") authenticationToken: String,
             @Query("dish") name: String,
-            @Query("dishPrice") address: Float
+            @Query("dishPrice") address: Double
         ): Response<Unit>
 
         @PUT("canteen/waiting-time")
@@ -143,7 +143,7 @@ private class AdminApiImplementation(apiBaseUrl: String) : AdminApi {
         val phoneNumber: String,
         val website: String,
         val dish: String,
-        val dishPrice: Float,
+        val dishPrice: Double,
         val waitingTime: Int
     )
 
