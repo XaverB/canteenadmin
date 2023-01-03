@@ -16,6 +16,7 @@ import com.airbnb.lottie.LottieAnimationView
 import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
 import com.example.canteenchecker.adminapp.api.AdminApiFactory
+import com.example.canteenchecker.adminapp.core.Canteen
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
 
@@ -90,6 +91,20 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
         }
     }
 
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        arguments?.let {
+            it?.getInt("waitingTime", 0)?.let { waitingTime ->
+                tvWaitingTimeValue.text = waitingTime.toString()
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("waitingTime", selectedWaitingTime)
+    }
+
     private fun updateSelectedWaitingTime(progress: Int) {
         selectedWaitingTime = progress
         tvChoseWaitingTime.text = "Select waiting time: ${selectedWaitingTime}m";
@@ -128,7 +143,6 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
         override fun onReceive(context: Context?, intent: Intent?) {
             intent?.getIntExtra("waitingTime", 0)?.let { waitingTime ->
                 animateTextView(waitingTime)
-//                tvWaitingTimeValue.text = "${waitingTime}m"
             }
         }
     }

@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
  * create an instance of this fragment.
  */
 class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
+    private val canteenBroadcastReceiver: BroadcastReceiver = CanteenBroadcastReceiver()
     private val updateCanteenBroadcastReceiver: BroadcastReceiver = UpdateCanteenBroadcastReceiver()
     private val updateWaitingTimeBroadcastReceiver: BroadcastReceiver =
         UpdateWaitingTimeBroadcastReciever()
@@ -50,7 +51,7 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
         arguments?.let {
             it.getSerializable("canteen", Canteen::class.java)?.let { c -> canteen = c }
         }
-        updateCanteen()
+//        updateCanteen()
         requireContext().registerReceiver(
             updateCanteenBroadcastReceiver,
             IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess")
@@ -59,12 +60,17 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
             updateWaitingTimeBroadcastReceiver,
             IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.UpdateWaitingTime")
         )
+        requireContext().registerReceiver(
+            canteenBroadcastReceiver,
+            IntentFilter("com.example.canteenchecker.adminapp.ui.MainActivity.CanteenFetched")
+        )
     }
 
     override fun onDestroy() {
         super.onDestroy()
         requireContext().unregisterReceiver(updateCanteenBroadcastReceiver)
         requireContext().unregisterReceiver(updateWaitingTimeBroadcastReceiver)
+        requireContext().unregisterReceiver(canteenBroadcastReceiver)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -99,9 +105,9 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_activity_main, menu)
-        return super.onCreateOptionsMenu(menu, inflater)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putSerializable("canteen", canteen)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
@@ -132,11 +138,11 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
                 canteen = it
                 updateCanteen(it)
 
-                WaitingTimeFragment.waitingTimeUpdatedIntent(it.waitingTime)?.let { intent ->
+                WaitingTimeFragment.waitingTimeUpdatedIntent(it.waitingTime).let { intent ->
                     activity?.sendBroadcast(intent)
                 }
 
-                DishFragment.dishUpdatedIntent(it.dish, it.dishPrice)?.let { intent ->
+                DishFragment.dishUpdatedIntent(it.dish, it.dishPrice).let { intent ->
                     activity?.sendBroadcast(intent)
                 }
             }
@@ -150,6 +156,7 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
     }
 
     private fun updateCanteen(canteen: Canteen) {
+        this.canteen = canteen;
         tvPhone.text = PhoneNumberUtils.formatNumber(canteen.phoneNumber, Locale.current.region);
         tvAddress.text = canteen.address
         tvWebsite.text = canteen.website
@@ -195,6 +202,17 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
             }
         }
     }
+
+    inner class CanteenBroadcastReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.getSerializableExtra("canteen", Canteen::class.java)?.let { canteen ->
+                canteen?.let {
+                    updateCanteen(canteen)
+                }
+            }
+        }
+    }
+
 
     // triggered from edit fragment so we do not have to fetch again
     inner class UpdateCanteenBroadcastReceiver : BroadcastReceiver() {
@@ -242,6 +260,14 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
                     "com.example.canteenchecker.adminapp.ui.MainActivity.UpdateCanteenSuccess"
                 intent.putExtra("canteen", updatedCanteen)
             }
+
+        fun canteenFetchedIntent(canteen: Canteen) =
+        Intent().also { intent ->
+            intent.action =
+                "com.example.canteenchecker.adminapp.ui.MainActivity.CanteenFetched"
+            intent.putExtra("canteen", canteen)
+        }
+
 
         @JvmStatic
         fun newInstance(canteen: Canteen) =

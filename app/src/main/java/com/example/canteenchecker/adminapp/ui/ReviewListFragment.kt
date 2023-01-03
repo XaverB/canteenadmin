@@ -1,5 +1,9 @@
 package com.example.canteenchecker.adminapp.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -24,11 +28,14 @@ import java.text.NumberFormat
 
 class ReviewListFragment : Fragment(R.layout.fragment_review_list) {
 
+    private val updateReviewBroadcast: BroadcastReceiver = UpdateReviewBroadcast()
+
     private val reviewAdapter = ReviewAdapter()
     private lateinit var reviews: MutableList<Review>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requireContext().registerReceiver(updateReviewBroadcast, IntentFilter("com.example.canteenchecker.adminapp.ui.ReviewUpdated"))
     }
 
     override fun onCreateView(
@@ -37,6 +44,11 @@ class ReviewListFragment : Fragment(R.layout.fragment_review_list) {
     ): View? {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_review_list, container, false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requireContext().unregisterReceiver(updateReviewBroadcast)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -137,6 +149,12 @@ class ReviewListFragment : Fragment(R.layout.fragment_review_list) {
         reviewAdapter.displayReviews(reviews)
     }
 
+    inner class UpdateReviewBroadcast : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateReviews()
+        }
+    }
+
     private class ReviewAdapter : RecyclerView.Adapter<ReviewAdapter.ViewHolder>() {
 
         private class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -160,12 +178,6 @@ class ReviewListFragment : Fragment(R.layout.fragment_review_list) {
             rtbAverageRating.rating = review.rating
             txvAverageRating.text = NumberFormat.getNumberInstance().format(review.rating)
 
-            // navigate to CanteensDetailsActivity
-//            itemView.setOnClickListener {
-//                itemView.context.run {
-//                    startActivity(CanteenDetailActivity.intent(this, review.id))
-//                }
-//            }
         }
 
         override fun getItemCount(): Int = reviews.size

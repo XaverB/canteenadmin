@@ -76,7 +76,13 @@ class DishFragment : Fragment(R.layout.fragment_dish) {
 
     private fun update() = lifecycleScope.launch{
         val token = (requireActivity().application as App).authenticationToken
-        val price = edtPrice.text.toString().toDouble()
+
+        val priceWithCurrency = edtPrice.text.toString()
+        val replaceRegex = String.format("[%s,.\\s]",  Objects.requireNonNull(NumberFormat.getCurrencyInstance().currency));
+
+        val priceWithoutCurrency = priceWithCurrency.replace(NumberFormat.getCurrencyInstance().currency.symbol, "")
+
+        val price = priceWithoutCurrency.toDouble()
         val name = edtDish.text.toString()
 
         AdminApiFactory.createAdminAPi().updateDish(token, EditDish(name, price))
@@ -87,10 +93,7 @@ class DishFragment : Fragment(R.layout.fragment_dish) {
 
     private fun setValues(dish: EditDish) {
         edtDish.setText(dish.name)
-        val format = NumberFormat.getCurrencyInstance()
-        format.maximumFractionDigits = 0
-        format.currency = Currency.getInstance("EUR")
-        edtPrice.setText(format.format(dish.price))
+        edtPrice.setText(NumberFormat.getCurrencyInstance().format(dish.price))
     }
 
     inner class DishFetchedBroadcastReceiver : BroadcastReceiver() {
@@ -108,6 +111,13 @@ class DishFragment : Fragment(R.layout.fragment_dish) {
                 intent.action =
                     "com.example.canteenchecker.adminapp.ui.MainActivity.DishFetched"
                 intent.putExtra(ARG_DISH, EditDish(name, price))
+            }
+
+        fun newInstance(dish: EditDish) =
+            DishFragment().apply {
+                arguments = Bundle().apply {
+                    putSerializable(ARG_DISH, dish)
+                }
             }
 
         fun newInstance() =

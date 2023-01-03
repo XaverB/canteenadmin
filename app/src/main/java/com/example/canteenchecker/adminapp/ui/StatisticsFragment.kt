@@ -1,5 +1,9 @@
 package com.example.canteenchecker.adminapp.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.View
@@ -16,6 +20,8 @@ import java.text.NumberFormat
 
 class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
 
+    private val updateReviewBroadcast: BroadcastReceiver = UpdateReviewBroadcast()
+
     private lateinit var txvAverageRating: TextView
     private lateinit var rbAverageRating: RatingBar
     private lateinit var txvTotalRatings: TextView
@@ -25,6 +31,16 @@ class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
     private lateinit var prbRatingsThree: ProgressBar
     private lateinit var prbRatingsFour: ProgressBar
     private lateinit var prbRatingsFive: ProgressBar
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireContext().registerReceiver(updateReviewBroadcast, IntentFilter("com.example.canteenchecker.adminapp.ui.ReviewUpdated"))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requireContext().unregisterReceiver(updateReviewBroadcast)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -84,6 +100,12 @@ class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
                 prbRatingsFive.max = reviews.totalRatings
 
             }
+    }
+
+    inner class UpdateReviewBroadcast : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateReview()
+        }
     }
 
     companion object {

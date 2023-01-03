@@ -2,6 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <item android:id="@+id/mniLogout"
+        android:title="@string/Logout"
+        android:visible="true"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/ic_baseline_logout_24"
+        />
+
     <item android:id="@+id/mniEdit"
         android:title="@string/Edit"
         android:visible="false"

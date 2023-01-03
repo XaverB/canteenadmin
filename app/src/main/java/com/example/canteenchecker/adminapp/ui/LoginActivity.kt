@@ -30,7 +30,7 @@ class LoginActivity : AppCompatActivity() {
         btnLogin = findViewById(R.id.btnLogIn)
 
         btnLogin.setOnClickListener { login() }
-        btnLogin.isEnabled = false
+//        btnLogin.isEnabled = false
 
         setButtonDisabledState()
     }
@@ -78,9 +78,22 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    private fun startTransition() {
-        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-        startActivity(intent, )
+    private fun startTransition() = lifecycleScope.launch {
+        val token = (application as App).authenticationToken
+        AdminApiFactory.createAdminAPi().getCanteen(token).onSuccess { canteen ->
+            Intent(this@LoginActivity, MainActivity::class.java).also { intent ->
+                intent.putExtra("com.example.canteenchecker.adminapp.ui.canteen", canteen)
+                startActivity(intent)
+            }
+
+        }
+            .onFailure {
+                Toast.makeText(
+                    this@LoginActivity,
+                    "´Keine Verbindung zum Server möglich",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
     }
 
     private fun storeLogin(authenticationToken: String) {

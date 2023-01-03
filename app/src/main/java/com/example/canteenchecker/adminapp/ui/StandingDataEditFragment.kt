@@ -1,16 +1,17 @@
 package com.example.canteenchecker.adminapp.ui
 
-import android.content.Intent
+import android.location.Address
 import android.location.Geocoder
+import android.os.Build
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
 import android.view.*
-import androidx.fragment.app.Fragment
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.intl.Locale
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
@@ -18,17 +19,17 @@ import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
 import com.example.canteenchecker.adminapp.core.EditCanteen
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.launch
 
-/**
- * A simple [Fragment] subclass.
- * Use the [StandingDataEditFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) {
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit),
+    GoogleMap.OnMarkerDragListener, Geocoder.GeocodeListener {
     private var canteen: Canteen? = null
 
     private lateinit var edtName: EditText
@@ -55,18 +56,31 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
             edtAddress = findViewById(R.id.edtAddress)
             edtName = findViewById(R.id.edtName)
 
+            edtAddress.setOnFocusChangeListener { view, b -> updateAddressOnFocusChanged(b) }
+
             // maps
             mapFragment = childFragmentManager
                 .findFragmentById(R.id.fcwMap) as SupportMapFragment
             mapFragment.getMapAsync {
+                it.setOnMarkerDragListener(this@StandingDataEditFragment)
                 it.uiSettings.apply {
-                    setAllGesturesEnabled(false)
+                    setAllGesturesEnabled(true)
                     isZoomControlsEnabled = true
                 }
             }
 
+
             canteen?.let { updateCanteen(it) }
         }
+    }
+
+    private fun updateAddressOnFocusChanged(hasFocus: Boolean) {
+        if (hasFocus) return
+
+        val text = edtAddress.text.toString()
+        if (text.isEmpty()) return
+
+        Geocoder(requireContext()).getFromLocationName(text, 1, this@StandingDataEditFragment)
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
@@ -97,7 +111,8 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
     }
 
     private fun cancelEdit() {
-        (activity as AppCompatActivity).supportFragmentManager.popBackStack()
+        requireActivity().supportFragmentManager.popBackStack()
+//        (activity as AppCompatActivity).supportFragmentManager.popBackStack()
     }
 
     private fun updateCanteen(canteen: Canteen) {
@@ -113,11 +128,11 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
             }
         mapFragment.getMapAsync { map ->
             map.apply {
+                setOnMarkerDragListener(this@StandingDataEditFragment)
                 clear()
                 if (address != null) {
                     addMarker(
-                        MarkerOptions()
-                            .position(address)
+                        MarkerOptions().position(address).draggable(true).title("Address")
                     )
 
                     animateCamera(
@@ -136,7 +151,6 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
     }
 
     private fun save() = lifecycleScope.launch {
-
         val updatedCanteen = EditCanteen(
             edtName.text.toString(),
             edtAddress.text.toString(),
@@ -144,7 +158,6 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
             edtPhone.text.toString()
         )
 
-        // TODO
         val authenticationToken = (activity?.application as App).authenticationToken
 
         AdminApiFactory.createAdminAPi().updateCanteen(
@@ -156,19 +169,13 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
             StandingDataFragment.editCanteenIntent(updatedCanteen).let {
                 activity?.sendBroadcast(it)
             }
-            activity?.supportFragmentManager?.popBackStack()
+            requireActivity().supportFragmentManager.popBackStack()
         }
     }
 
     companion object {
         private const val DEFAULT_ZOOM_FACTOR = 13f
 
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @return A new instance of fragment StandingDataFragment.
-         */
         @JvmStatic
         fun newInstance(canteen: Canteen) =
             StandingDataEditFragment().apply {
@@ -176,5 +183,57 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit) 
                     putSerializable("canteen", canteen)
                 }
             }
+    }
+
+    override fun onMarkerDrag(p0: Marker) {
+    }
+
+    override fun onMarkerDragStart(p0: Marker) {
+    }
+
+    override fun onGeocode(addresses: MutableList<Address>) {
+        if (addresses.isEmpty()) return
+        addresses[0].let {
+            updateAddressTextbox(it)
+            updateMarker(it)
+        }
+    }
+
+    override fun onMarkerDragEnd(p0: Marker) {
+        val latLng: LatLng = p0.position
+        val geocoder = Geocoder(requireContext())
+        // result will be handled in onGeocode function
+        geocoder.getFromLocation(
+            latLng.latitude,
+            latLng.longitude,
+            1,
+            this@StandingDataEditFragment
+        )
+    }
+
+
+    private fun updateAddressTextbox(it: Address) {
+        edtAddress.setText("${it.getAddressLine(0)}")
+    }
+
+    private fun updateMarker(address: Address) {
+        mapFragment.getMapAsync { map ->
+            map.apply {
+                clear()
+
+                addMarker(
+                    MarkerOptions().position(LatLng(address.latitude, address.longitude))
+                        .draggable(true)
+                )
+
+                animateCamera(
+                    CameraUpdateFactory
+                        .newLatLngZoom(
+                            LatLng(address.latitude, address.longitude),
+                            DEFAULT_ZOOM_FACTOR
+                        )
+                )
+            }
+        }
     }
 }
