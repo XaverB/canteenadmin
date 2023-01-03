@@ -4,13 +4,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.Address
 import android.location.Geocoder
+import android.os.Build
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
 import android.view.*
 import androidx.fragment.app.Fragment
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.intl.Locale
 import androidx.lifecycle.lifecycleScope
@@ -20,17 +23,15 @@ import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import com.example.canteenchecker.adminapp.core.Canteen
 import com.example.canteenchecker.adminapp.core.EditCanteen
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.launch
 
-/**
- * A simple [Fragment] subclass.
- * Use the [StandingDataFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+class StandingDataFragment : Fragment(R.layout.fragment_standing_data), Geocoder.GeocodeListener {
     private val canteenBroadcastReceiver: BroadcastReceiver = CanteenBroadcastReceiver()
     private val updateCanteenBroadcastReceiver: BroadcastReceiver = UpdateCanteenBroadcastReceiver()
     private val updateWaitingTimeBroadcastReceiver: BroadcastReceiver =
@@ -44,6 +45,8 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
     private lateinit var tvAddress: TextView
 
     private lateinit var mapFragment: SupportMapFragment
+
+    private lateinit var map: GoogleMap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,13 +89,14 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
             mapFragment = childFragmentManager
                 .findFragmentById(R.id.fcwMap) as SupportMapFragment
             mapFragment.getMapAsync {
+                map = it
                 it.uiSettings.apply {
                     setAllGesturesEnabled(false)
                     isZoomControlsEnabled = true
                 }
+                // we want our map to be ready before we update the map, therefore calling this here
+                canteen?.let { c -> updateCanteen(c) }
             }
-
-            canteen?.let { updateCanteen(it) }
         }
     }
 
@@ -156,41 +160,42 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
     }
 
     private fun updateCanteen(canteen: Canteen) {
-        this.canteen = canteen;
-        tvPhone.text = PhoneNumberUtils.formatNumber(canteen.phoneNumber, Locale.current.region);
-        tvAddress.text = canteen.address
+        this.canteen = canteen
+        tvPhone.text = PhoneNumberUtils.formatNumber(canteen.phoneNumber, Locale.current.region)
+
         tvWebsite.text = canteen.website
         tvName.text = canteen.name
 
-        val address = Geocoder(requireContext())
-            .getFromLocationName(canteen.address, 1)
-            ?.firstOrNull()?.run {
-                LatLng(latitude, longitude)
-            }
-        mapFragment.getMapAsync { map ->
-            map.apply {
-                clear()
-                if (address != null) {
-                    addMarker(
-                        MarkerOptions()
-                            .position(address)
-                    )
-
-                    animateCamera(
-                        CameraUpdateFactory
-                            .newLatLngZoom(address, DEFAULT_ZOOM_FACTOR)
-                    )
-                } else {
-                    animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(0.0, 0.0), 0f
-                        )
-                    )
-                }
-            }
+        if (tvAddress.text.toString() != canteen.address) {
+            tvAddress.text = canteen.address
+            Geocoder(requireContext())
+                .getFromLocationName(canteen.address, 1, this@StandingDataFragment)
         }
     }
 
+    override fun onGeocode(addresses: MutableList<Address>) {
+        if (addresses.isEmpty()) return
+        updateMap(addresses.first())
+    }
+
+    private fun updateMap(address: Address) = lifecycleScope.launch {
+
+        map.apply {
+            clear()
+            addMarker(
+                MarkerOptions()
+                    .position(LatLng(address.latitude, address.longitude))
+            )
+
+            animateCamera(
+                CameraUpdateFactory
+                    .newLatLngZoom(
+                        LatLng(address.latitude, address.longitude),
+                        DEFAULT_ZOOM_FACTOR
+                    )
+            )
+        }
+    }
 
     inner class UpdateWaitingTimeBroadcastReciever : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -206,9 +211,7 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
     inner class CanteenBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             intent?.getSerializableExtra("canteen", Canteen::class.java)?.let { canteen ->
-                canteen?.let {
-                    updateCanteen(canteen)
-                }
+                updateCanteen(canteen)
             }
         }
     }
@@ -262,11 +265,11 @@ class StandingDataFragment : Fragment(R.layout.fragment_standing_data) {
             }
 
         fun canteenFetchedIntent(canteen: Canteen) =
-        Intent().also { intent ->
-            intent.action =
-                "com.example.canteenchecker.adminapp.ui.MainActivity.CanteenFetched"
-            intent.putExtra("canteen", canteen)
-        }
+            Intent().also { intent ->
+                intent.action =
+                    "com.example.canteenchecker.adminapp.ui.MainActivity.CanteenFetched"
+                intent.putExtra("canteen", canteen)
+            }
 
 
         @JvmStatic

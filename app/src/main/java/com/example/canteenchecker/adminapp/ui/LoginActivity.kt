@@ -17,9 +17,9 @@ import com.example.canteenchecker.adminapp.api.AdminApiFactory
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
-    private lateinit var edtUsername: EditText;
-    private lateinit var edtPassword: EditText;
-    private lateinit var btnLogin: Button;
+    private lateinit var edtUsername: EditText
+    private lateinit var edtPassword: EditText
+    private lateinit var btnLogin: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +59,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun login() = lifecycleScope.launch() {
+    private fun login() = lifecycleScope.launch {
         val username = edtUsername.text.toString()
         val password = edtPassword.text.toString()
 
@@ -101,7 +101,7 @@ class LoginActivity : AppCompatActivity() {
         val password = edtPassword.text.toString()
 
         val app = (application as App)
-        app.authenticationToken = "Bearer $authenticationToken";
+        app.authenticationToken = "Bearer $authenticationToken"
         app.username = username
         app.password = password
     }

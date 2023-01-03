@@ -16,18 +16,12 @@ import com.airbnb.lottie.LottieAnimationView
 import com.example.canteenchecker.adminapp.App
 import com.example.canteenchecker.adminapp.R
 import com.example.canteenchecker.adminapp.api.AdminApiFactory
-import com.example.canteenchecker.adminapp.core.Canteen
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
 
 
 private const val ARG_WAITING_TIME = "waitingTime"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [WaitingTimeFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
     private val waitingTimeFetchedBroadcastReceiver: BroadcastReceiver = WaitingTimeFetchedBroadcastReceiver()
 
@@ -68,7 +62,7 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
             btnSave = findViewById(R.id.fbSaveWaitingTime)
             ltWaitingTime = findViewById(R.id.ltWaitingTime)
 
-            sbWaitingTime?.setOnSeekBarChangeListener(object :
+            sbWaitingTime.setOnSeekBarChangeListener(object :
                 SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(
                     seek: SeekBar,
@@ -94,7 +88,7 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
         super.onViewStateRestored(savedInstanceState)
         arguments?.let {
-            it?.getInt("waitingTime", 0)?.let { waitingTime ->
+            it.getInt("waitingTime", 0).let { waitingTime ->
                 tvWaitingTimeValue.text = waitingTime.toString()
             }
         }
@@ -107,20 +101,20 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
 
     private fun updateSelectedWaitingTime(progress: Int) {
         selectedWaitingTime = progress
-        tvChoseWaitingTime.text = "Select waiting time: ${selectedWaitingTime}m";
+        tvChoseWaitingTime.text = "Select waiting time: ${selectedWaitingTime}m"
     }
 
     private fun save() = lifecycleScope.launch {
         val token = (requireActivity().application as App).authenticationToken
-        AdminApiFactory.createAdminAPi().updateWaitingTime(token, selectedWaitingTime)?.onSuccess {
+        AdminApiFactory.createAdminAPi().updateWaitingTime(token, selectedWaitingTime).onSuccess {
             StandingDataFragment.waitingTimeIntent(selectedWaitingTime).let {
                 activity?.sendBroadcast(it)
             }
             animateTextView(selectedWaitingTime)
-//            tvWaitingTimeValue.text = selectedWaitingTime.toString() + "m"
+            //            tvWaitingTimeValue.text = selectedWaitingTime.toString() + "m"
             ltWaitingTime.playAnimation()
 
-        }?.onFailure {
+        }.onFailure {
             Toast.makeText(requireContext(), "Kaputt", Toast.LENGTH_LONG).show()
         }
     }
@@ -131,8 +125,8 @@ class WaitingTimeFragment : Fragment(R.layout.fragment_waiting_time) {
 
         val valueAnimator = ValueAnimator.ofInt(initialValue, value)
         valueAnimator.duration = 1500
-        valueAnimator.addUpdateListener { valueAnimator ->
-            tvWaitingTimeValue.text = valueAnimator.animatedValue.toString()
+        valueAnimator.addUpdateListener { v ->
+            tvWaitingTimeValue.text = v.animatedValue.toString()
         }
         valueAnimator.start()
     }

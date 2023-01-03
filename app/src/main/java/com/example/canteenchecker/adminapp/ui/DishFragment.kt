@@ -78,15 +78,17 @@ class DishFragment : Fragment(R.layout.fragment_dish) {
         val token = (requireActivity().application as App).authenticationToken
 
         val priceWithCurrency = edtPrice.text.toString()
-        val replaceRegex = String.format("[%s,.\\s]",  Objects.requireNonNull(NumberFormat.getCurrencyInstance().currency));
 
-        val priceWithoutCurrency = priceWithCurrency.replace(NumberFormat.getCurrencyInstance().currency.symbol, "")
+        val priceWithoutCurrency = NumberFormat.getCurrencyInstance().currency.let {
+            priceWithCurrency.replace(
+                it?.symbol ?: "EUR", "")
+        }
 
         val price = priceWithoutCurrency.toDouble()
         val name = edtDish.text.toString()
 
         AdminApiFactory.createAdminAPi().updateDish(token, EditDish(name, price))
-            ?.onFailure {
+            .onFailure {
                 Toast.makeText(requireContext(), "Verbindung zum Server fehlgeschlagen", Toast.LENGTH_LONG).show()
             }
     }
@@ -112,15 +114,12 @@ class DishFragment : Fragment(R.layout.fragment_dish) {
                     "com.example.canteenchecker.adminapp.ui.MainActivity.DishFetched"
                 intent.putExtra(ARG_DISH, EditDish(name, price))
             }
-
+        @JvmStatic
         fun newInstance(dish: EditDish) =
             DishFragment().apply {
                 arguments = Bundle().apply {
                     putSerializable(ARG_DISH, dish)
                 }
             }
-
-        fun newInstance() =
-            DishFragment()
     }
 }

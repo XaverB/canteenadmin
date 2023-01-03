@@ -4,11 +4,11 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 
-class App() : Application() {
+class App : Application() {
 
-    var authenticationToken: String = "";
-    var username: String = "";
-    var password: String = "";
+    var authenticationToken: String = ""
+    var username: String = ""
+    var password: String = ""
 
     override fun onCreate() {
         super.onCreate()

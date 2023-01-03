@@ -9,7 +9,6 @@ import android.view.*
 import android.widget.EditText
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.text.intl.Locale
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -39,6 +38,8 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit),
 
     private lateinit var mapFragment: SupportMapFragment
 
+    private lateinit var map: GoogleMap
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -56,12 +57,13 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit),
             edtAddress = findViewById(R.id.edtAddress)
             edtName = findViewById(R.id.edtName)
 
-            edtAddress.setOnFocusChangeListener { view, b -> updateAddressOnFocusChanged(b) }
+            edtAddress.setOnFocusChangeListener { _, b -> updateAddressOnFocusChanged(b) }
 
             // maps
             mapFragment = childFragmentManager
                 .findFragmentById(R.id.fcwMap) as SupportMapFragment
             mapFragment.getMapAsync {
+                map = it
                 it.setOnMarkerDragListener(this@StandingDataEditFragment)
                 it.uiSettings.apply {
                     setAllGesturesEnabled(true)
@@ -121,33 +123,8 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit),
         edtWebsite.setText(canteen.website)
         edtName.setText(canteen.name)
 
-        val address = Geocoder(requireContext())
-            .getFromLocationName(canteen.address, 1)
-            ?.firstOrNull()?.run {
-                LatLng(latitude, longitude)
-            }
-        mapFragment.getMapAsync { map ->
-            map.apply {
-                setOnMarkerDragListener(this@StandingDataEditFragment)
-                clear()
-                if (address != null) {
-                    addMarker(
-                        MarkerOptions().position(address).draggable(true).title("Address")
-                    )
-
-                    animateCamera(
-                        CameraUpdateFactory
-                            .newLatLngZoom(address, StandingDataEditFragment.DEFAULT_ZOOM_FACTOR)
-                    )
-                } else {
-                    animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(0.0, 0.0), 0f
-                        )
-                    )
-                }
-            }
-        }
+        Geocoder(requireContext())
+            .getFromLocationName(canteen.address, 1, this@StandingDataEditFragment)
     }
 
     private fun save() = lifecycleScope.launch {
@@ -213,27 +190,26 @@ class StandingDataEditFragment : Fragment(R.layout.fragment_standing_data_edit),
 
 
     private fun updateAddressTextbox(it: Address) {
-        edtAddress.setText("${it.getAddressLine(0)}")
+        edtAddress.setText(it.getAddressLine(0))
     }
 
-    private fun updateMarker(address: Address) {
-        mapFragment.getMapAsync { map ->
-            map.apply {
-                clear()
+    private fun updateMarker(address: Address) = lifecycleScope.launch {
+        map.apply {
+            clear()
 
-                addMarker(
-                    MarkerOptions().position(LatLng(address.latitude, address.longitude))
-                        .draggable(true)
-                )
+            addMarker(
+                MarkerOptions().position(LatLng(address.latitude, address.longitude))
+                    .draggable(true)
+            )
 
-                animateCamera(
-                    CameraUpdateFactory
-                        .newLatLngZoom(
-                            LatLng(address.latitude, address.longitude),
-                            DEFAULT_ZOOM_FACTOR
-                        )
-                )
-            }
+            animateCamera(
+                CameraUpdateFactory
+                    .newLatLngZoom(
+                        LatLng(address.latitude, address.longitude),
+                        DEFAULT_ZOOM_FACTOR
+                    )
+            )
         }
+
     }
 }
